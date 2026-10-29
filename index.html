@@ -55,6 +55,10 @@ main .notice{flex:0 0 auto}
 .grid td.cell{user-select:none}
 .bottom{flex:0 0 auto;min-height:34px}
 @media(max-width:700px){body{min-height:100dvh}main{padding:0 6px 5px}.notice{margin:4px 0;font-size:10px}.gridwrap{min-height:150px;max-height:none}.bottom{min-height:32px}.top{min-height:42px}.toolbar{max-width:100%}}
+
+/* Keyboard shortcuts and usability */
+.grid td.cell:focus{outline:2px solid #217346;outline-offset:-2px}
+@media(min-width:701px){.grid th,.grid td{min-width:120px}.grid td.rowhead,.grid thead th.corner{min-width:44px;width:44px}}
 </style>
 </head>
 <body>
