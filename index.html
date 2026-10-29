@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartSheet</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--green:#16834a;--line:#d9e1dc;--ink:#17231b;--muted:#66736b;--bg:#f4f7f5}
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+header{height:58px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px}
+.logo{background:var(--green);color:white;font-weight:800;border-radius:8px;padding:7px 10px}.brand{font-weight:700;font-size:17px}.saved{color:var(--muted);font-size:12px;margin-left:auto}
+button,.filebtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:8px 11px;font:inherit;cursor:pointer;color:var(--ink)}button:hover,.filebtn:hover{background:#f0f7f2;border-color:#9fc9ad}.primary{background:var(--green);color:white;border-color:var(--green)}.primary:hover{background:#116b3c;color:white}
+.toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;background:#fff;padding:10px 14px;border-bottom:1px solid var(--line)}
+select,input[type=number]{border:1px solid var(--line);border-radius:6px;padding:7px;background:white;font:inherit}
+.formula{display:flex;gap:8px;align-items:center;padding:9px 14px;background:#fff;border-bottom:1px solid var(--line)}#address{width:68px;text-align:center;background:#f8faf8}#formula{flex:1;min-width:0}
+main{padding:12px;max-width:100%;overflow:hidden}.hint{color:var(--muted);font-size:12px;margin:0 0 10px}
+.gridwrap{overflow:auto;max-height:calc(100vh - 250px);background:white;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;table-layout:fixed;min-width:100%;width:max-content}th,td{border:1px solid #e2e8e4;height:29px;min-width:105px;padding:0}th{background:#f1f5f2;color:#59665e;font-weight:600;text-align:center;position:sticky;top:0;z-index:2}th:first-child{left:0;z-index:3;min-width:42px;width:42px}td.rowhead{position:sticky;left:0;background:#f1f5f2;text-align:center;color:#59665e;min-width:42px;width:42px;z-index:1;font-size:12px}
+td.cell{background:white;padding:0}td.cell:focus{outline:2px solid #16834a;outline-offset:-2px}td.cell.selected{outline:2px solid #16834a;outline-offset:-2px}td.cell input{width:100%;height:100%;border:0;outline:0;padding:4px 6px;font:inherit;background:transparent}
+.bottom{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-top:0;padding:8px;border-radius:0 0 8px 8px;overflow:auto}.tab{white-space:nowrap}.tab.active{background:#e7f4eb;border-color:#9cc8aa;color:#116b3c;font-weight:700}.status{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap}
+@media(max-width:600px){header{padding:0 10px}.brand{font-size:15px}.saved{display:none}.toolbar{padding:8px;gap:5px}.toolbar button,.filebtn{padding:7px 9px;font-size:12px}.formula{padding:8px}main{padding:8px}.gridwrap{max-height:calc(100vh - 270px)}th,td{min-width:88px;height:32px}}
+</style>
+</head>
+<body>
+<header><span class="logo">S</span><span class="brand">SmartSheet</span><span class="saved" id="saved">Local spreadsheet</span><button id="new" title="New workbook">New</button><button class="primary" id="download">Download .xlsx</button></header>
+<div class="toolbar">
+<label class="filebtn">Upload file <input id="upload" type="file" accept=".xlsx,.xls,.csv" hidden></label>
+<button id="csv">Export CSV</button><button id="addrow">+ Row</button><button id="addcol">+ Column</button><button id="addsheet">+ Sheet</button>
+<select id="fontSize" aria-label="Font size"><option>10</option><option selected>11</option><option>12</option><option>14</option><option>16</option><option>18</option><option>24</option></select>
+<button id="bold"><b>B</b></button><button id="italic"><i>I</i></button><button id="color" title="Text color">A ▾</button><button id="fill" title="Cell background">▰ ▾</button>
+</div>
+<div class="formula"><input id="address" value="A1" aria-label="Cell address" readonly><span>fx</span><input id="formula" placeholder="Enter a value or formula, e.g. =SUM(A1:A5)" aria-label="Formula bar"><button id="apply">✓</button></div>
+<main><p class="hint">Select a cell and type. Try formulas such as =SUM(A1:A5), =AVERAGE(B1:B5), or =A1+B1. Work is saved in this browser.</p><div class="gridwrap"><table id="grid"></table></div><div class="bottom" id="tabs"><button class="tab active">Sheet1</button><span class="status" id="status">Ready</span></div></main>
+<script>
+const ROWS=40,COLS=20;let sheets=[{name:"Sheet1",data:{}}],active=0,rows=ROWS,cols=COLS,selected={r:0,c:0},bold=false,italic=false;
+const grid=document.getElementById('grid'),formula=document.getElementById('formula'),address=document.getElementById('address'),status=document.getElementById('status');
+function colName(n){let s='';while(n>=0){s=String.fromCharCode(n%26+65)+s;n=Math.floor(n/26)-1}return s}
+function key(r,c){return colName(c)+ (r+1)}
+function data(){return sheets[active].data}
+function render(){grid.innerHTML='';let head=document.createElement('tr');head.append(el('th',''));for(let c=0;c<cols;c++)head.append(el('th',colName(c)));grid.append(head);
+for(let r=0;r<rows;r++){let tr=document.createElement('tr');tr.append(el('td',''+(r+1),'rowhead'));for(let c=0;c<cols;c++){let td=el('td','','cell');td.dataset.r=r;td.dataset.c=c;td.tabIndex=0;td.textContent=display(r,c);if(selected.r===r&&selected.c===c)td.classList.add('selected');td.addEventListener('click',()=>select(r,c));td.addEventListener('dblclick',()=>edit(r,c));td.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();edit(r,c)}else if(e.key==='ArrowDown'){select(Math.min(rows-1,r+1),c)}else if(e.key==='ArrowUp'){select(Math.max(0,r-1),c)}else if(e.key==='ArrowRight'){select(r,Math.min(cols-1,c+1))}else if(e.key==='ArrowLeft'){select(r,Math.max(0,c-1))}else if(e.key==='Delete'||e.key==='Backspace'){data()[key(r,c)]='';render();save()}else if(e.key.length===1&&!e.ctrlKey&&!e.metaKey){edit(r,c,e.key)}});tr.append(td)}grid.append(tr)}updateTabs();select(selected.r,selected.c,false)}
+function el(tag,txt,cls){let x=document.createElement(tag);x.textContent=txt;if(cls)x.className=cls;return x}
+function select(r,c,update=true){selected={r,c};address.value=key(r,c);formula.value=data()[key(r,c)]||'';grid.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));let td=grid.querySelector('td[data-r="'+r+'"][data-c="'+c+'"]');if(td)td.classList.add('selected');if(update)status.textContent=key(r,c)+' selected'}
+function edit(r,c,initial=''){let td=grid.querySelector('td[data-r="'+r+'"][data-c="'+c+'"]');if(!td)return;td.innerHTML='';let inp=document.createElement('input');inp.value=initial||data()[key(r,c)]||'';td.append(inp);inp.focus();inp.select();let done=()=>{data()[key(r,c)]=inp.value;render();save()};inp.addEventListener('blur',done);inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();inp.blur();select(Math.min(rows-1,r+1),c)}if(e.key==='Escape'){inp.value=data()[key(r,c)]||'';inp.blur()}})}
+function setVal(r,c,v){data()[key(r,c)]=v}
+function raw(r,c){return data()[key(r,c)]??''}
+function evalCell(r,c,seen=new Set()){let k=key(r,c);if(seen.has(k))return '#CYCLE!';let v=raw(r,c);if(typeof v==='string'&&v.startsWith('=')){seen.add(k);try{return calc(v.slice(1),seen)}catch(e){return '#ERROR!'}finally{seen.delete(k)}}return v}
+function calc(expr,seen){expr=expr.replace(/\s/g,'');const range=/([A-Z]+\d+):([A-Z]+\d+)/gi;expr=expr.replace(range,(m,a,b)=>{let p=parseRef(a),q=parseRef(b),vals=[];for(let r=Math.min(p.r,q.r);r<=Math.max(p.r,q.r);r++)for(let c=Math.min(p.c,q.c);c<=Math.max(p.c,q.c);c++)vals.push(Number(evalCell(r,c,seen))||0);return '['+vals.join(',')+']'});
+expr=expr.replace(/([A-Z]+\d+)/gi,(m)=>{let p=parseRef(m),v=evalCell(p.r,p.c,seen);return typeof v==='number'?String(v):JSON.stringify(v??'')});
+expr=expr.replace(/\b(SUM|AVERAGE|MIN|MAX|COUNT|COUNTA)\(([^()]*)\)/gi,(m,f,args)=>{let vals=args.split(',').flatMap(x=>x.startsWith('[')?x.slice(1,-1).split(','): [x]).map(Number).filter(x=>Number.isFinite(x));if(f.toUpperCase()==='SUM')return vals.reduce((a,b)=>a+b,0);if(f.toUpperCase()==='AVERAGE')return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;if(f.toUpperCase()==='MIN')return vals.length?Math.min(...vals):0;if(f.toUpperCase()==='MAX')return vals.length?Math.max(...vals):0;if(f.toUpperCase()==='COUNT')return vals.length;return vals.length});
+if(/^".*"$/.test(expr))return JSON.parse(expr);if(/^[0-9.+*/()\-]+$/.test(expr))return Function('"use strict";return ('+expr+')')();if(expr==='TRUE')return true;if(expr==='FALSE')return false;return '#NAME?' }
+function parseRef(s){let m=s.toUpperCase().match(/^([A-Z]+)(\d+)$/);if(!m)return{r:0,c:0};let c=0;for(let ch of m[1])c=c*26+ch.charCodeAt(0)-64;return{r:+m[2]-1,c:c-1}}
+function display(r,c){let v=evalCell(r,c);return v===undefined?'':String(v)}
+function applyFormula(){data()[key(selected.r,selected.c)]=formula.value;render();save()}
+document.getElementById('apply').onclick=applyFormula;formula.addEventListener('keydown',e=>{if(e.key==='Enter')applyFormula()});
+document.getElementById('addrow').onclick=()=>{rows++;render();save()};document.getElementById('addcol').onclick=()=>{cols++;render();save()};
+document.getElementById('addsheet').onclick=()=>{sheets.push({name:'Sheet'+(sheets.length+1),data:{}});active=sheets.length-1;render();save()};
+function updateTabs(){let t=document.getElementById('tabs');t.querySelectorAll('.tab').forEach(x=>x.remove());sheets.forEach((s,i)=>{let b=el('button',s.name,'tab'+(i===active?' active':''));b.onclick=()=>{active=i;render();save()};b.ondblclick=()=>{let n=prompt('Worksheet name',s.name);if(n){s.name=n;render();save()}};t.insertBefore(b,t.querySelector('.status'))})}
+function save(){try{localStorage.setItem('smartsheet-data',JSON.stringify({sheets,active,rows,cols}));document.getElementById('saved').textContent='Saved locally';status.textContent='Saved'}catch(e){status.textContent='Browser storage unavailable'}}
+function load(){try{let x=JSON.parse(localStorage.getItem('smartsheet-data'));if(x){sheets=x.sheets||sheets;active=x.active||0;rows=x.rows||ROWS;cols=x.cols||COLS}}catch(e){}}
+document.getElementById('new').onclick=()=>{if(confirm('Create a new workbook? Current workbook will be replaced.')){sheets=[{name:'Sheet1',data:{}}];active=0;rows=ROWS;cols=COLS;render();save()}};
+document.getElementById('download').onclick=()=>{if(!window.XLSX){alert('Excel library did not load. Check your internet connection.');return}let wb=XLSX.utils.book_new();sheets.forEach(s=>{let aoa=[];for(let r=0;r<rows;r++){let row=[];for(let c=0;c<cols;c++){let v=s.data[key(r,c)]||'';row.push(v)}aoa.push(row)}XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),s.name.slice(0,31))});XLSX.writeFile(wb,'SmartSheet.xlsx');status.textContent='Excel file downloaded'};
+document.getElementById('csv').onclick=()=>{let out=[];for(let r=0;r<rows;r++){let line=[];for(let c=0;c<cols;c++){let v=raw(r,c);line.push('"'+String(v).replace(/"/g,'""')+'"')}out.push(line.join(','))}let blob=new Blob([out.join('\r\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=sheets[active].name+'.csv';a.click();URL.revokeObjectURL(a.href)};
+document.getElementById('upload').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let wb;if(f.name.toLowerCase().endsWith('.csv')){let text=await f.text();wb=XLSX.read(text,{type:'string'})}else{let buf=await f.arrayBuffer();wb=XLSX.read(buf,{type:'array',cellFormula:true})}sheets=wb.SheetNames.map(n=>{let ws=wb.Sheets[n],data={};Object.keys(ws).forEach(k=>{if(k[0]==='!')return;let cell=ws[k];data[k]=cell.f?'='+cell.f:(cell.v??'')});return{name:n,data}});active=0;rows=Math.max(ROWS,...sheets.map(s=>Object.keys(s.data).map(parseRef).reduce((m,p)=>Math.max(m,p.r+1),0)));cols=Math.max(COLS,...sheets.map(s=>Object.keys(s.data).map(parseRef).reduce((m,p)=>Math.max(m,p.c+1),0)));render();save();status.textContent='Imported '+f.name}catch(err){alert('Could not open this file. Try a valid .xlsx, .xls, or .csv file.')}e.target.value=''};
+document.getElementById('bold').onclick=()=>{bold=!bold;document.querySelectorAll('.selected').forEach(x=>x.style.fontWeight=bold?'bold':'normal')};document.getElementById('italic').onclick=()=>{italic=!italic;document.querySelectorAll('.selected').forEach(x=>x.style.fontStyle=italic?'italic':'normal')};
+document.getElementById('fontSize').onchange=e=>{let td=grid.querySelector('.selected');if(td)td.style.fontSize=e.target.value+'px'};
+document.getElementById('color').onclick=()=>{let c=prompt('Enter text color (example: #167a45)','#167a45');let td=grid.querySelector('.selected');if(td&&c)td.style.color=c};document.getElementById('fill').onclick=()=>{let c=prompt('Enter cell background color (example: #fff2cc)','#fff2cc');let td=grid.querySelector('.selected');if(td&&c)td.style.background=c};
+load();render();
+</script></body></html>
