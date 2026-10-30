@@ -60,10 +60,10 @@ main .notice{flex:0 0 auto}
 /* Keyboard shortcuts and usability */
 .grid td.cell:focus{outline:2px solid #217346;outline-offset:-2px}
 @media(min-width:701px){.grid th,.grid td{min-width:120px}.grid td.rowhead,.grid thead th.corner{min-width:44px;width:44px}}
-</style>
+ .agent-mode{background:#6d28d9!important;color:#fff!important;border:2px solid #5b21b6!important;font-weight:800!important;font-size:15px!important;letter-spacing:.2px;box-shadow:0 2px 7px #6d28d933}.agent-mode:hover{background:#5b21b6!important;color:#fff!important}\n</style>
 </head>
 <body>
-<header class="top"><span class="logo">S</span><div><div class="brand">SmartSheet</div><div class="sub">Your spreadsheet workspace</div></div><span class="spacer"></span><span id="saved" class="saved">Saved in this browser</span><button id="newBook">New</button><button id="download" class="primary">Download .xlsx</button></header>
+<header class="top"><span class="logo">S</span><div><div class="brand">SmartSheet</div><div class="sub">Your spreadsheet workspace</div></div><span class="spacer"></span><span id="saved" class="saved">Saved in this browser</span><button id="agentMode" class="agent-mode">✦ AGENT MODE</button><button id="newBook">New</button><button id="download" class="primary">Download .xlsx</button></header>
 <nav class="ribbonTabs" aria-label="Spreadsheet ribbon"><button class="ribbonTab active" data-ribbon="Home">Home</button><button class="ribbonTab" data-ribbon="Insert">Insert</button><button class="ribbonTab" data-ribbon="Page Layout">Page Layout</button><button class="ribbonTab" data-ribbon="Formulas">Formulas</button><button class="ribbonTab" data-ribbon="Data">Data</button><button class="ribbonTab" data-ribbon="Review">Review</button><button class="ribbonTab" data-ribbon="View">View</button></nav><div id="ribbonHint" class="ribbonHint">Home · Clipboard · Font · Alignment · Number · Cell styles</div><nav class="toolbar" aria-label="Spreadsheet tools">
  <div class="group" data-label="Clipboard & File"><label class="file-label">Upload <input id="upload" type="file" accept=".xlsx,.xls,.csv" hidden></label><button id="csv">Export CSV</button></div>
  <div class="group" data-label="Cells"><button id="addRow">+ Row</button><button id="addCol">+ Column</button><button id="addSheet">+ Sheet</button></div>
