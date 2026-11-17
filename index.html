@@ -94,5 +94,6 @@ $('agentMode').onclick=()=>{$('agentPanel').classList.toggle('open');if($('agent
 $('agentClose').onclick=()=>$('agentPanel').classList.remove('open');
 $('agentForm').onsubmit=e=>{e.preventDefault();let v=$('agentPrompt').value;$('agentPrompt').value='';agentRun(v)};
 document.querySelectorAll('[data-prompt]').forEach(b=>b.onclick=()=>{$('agentPrompt').value=b.dataset.prompt;$('agentPrompt').focus()});
-\ntry{let x=localStorage.getItem(K);if(x){let q=JSON.parse(x);if(q.sheets?.length)wb=q}}catch(e){}render();</script>
+
+try{let x=localStorage.getItem(K);if(x){let q=JSON.parse(x);if(q.sheets?.length)wb=q}}catch(e){}render();</script>
 </body></html>
